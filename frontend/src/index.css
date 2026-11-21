@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Paleta beige: elegancia, calma y sobriedad. Generan utilidades como bg-arena, text-cafe, font-serif. */
+@theme {
+  --font-sans: "Jost", system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+
+  --color-arena: #efe8dc; /* fondo de la pagina */
+  --color-lino: #f8f4ec; /* superficies: formularios, tarjetas, encabezado */
+  --color-sand: #dcd2c1; /* bordes finos y divisores */
+  --color-sand-soft: #e9e1d3; /* etiquetas y hover */
+  --color-topo: #75685b; /* texto secundario */
+  --color-cafe: #3a3029; /* texto principal y botones */
+  --color-cafe-soft: #564a40; /* hover de botones */
+  --color-bronce: #7e6140; /* unico acento: puntaje, foco, pagina activa */
+  --color-oliva: #5e6b45; /* estado "vista" */
+}
+
+body {
+  background-color: var(--color-arena);
+  color: var(--color-cafe);
+}
+
+/* Foco visible para teclado, en el color de acento. */
+:focus-visible {
+  outline: 2px solid var(--color-bronce);
+  outline-offset: 2px;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--color-lino);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
