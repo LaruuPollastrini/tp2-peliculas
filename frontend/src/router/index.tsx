@@ -7,6 +7,7 @@ import { MovieDetail } from "../pages/MovieDetail";
 import { Login } from "../pages/Login";
 import { Register } from "../pages/Register";
 import { MyMovies } from "../pages/MyMovies";
+import { Chat } from "../pages/Chat";
 import { AdminMovies } from "../pages/admin/AdminMovies";
 import { AdminUsers } from "../pages/admin/AdminUsers";
 import { Forbidden } from "../pages/Forbidden";
@@ -35,7 +36,10 @@ export const router = createBrowserRouter([
       // Privada: cualquier usuario logueado (opcional "registros propios")
       {
         element: <ProtectedRoute />,
-        children: [{ path: "mis-peliculas", element: <MyMovies /> }],
+        children: [
+          { path: "mis-peliculas", element: <MyMovies /> },
+          { path: "asistente", element: <Chat /> }, // extra: agente con LangChain
+        ],
       },
 
       // Privada por rol: solo admin. Un user comun es redirigido a /sin-permisos.

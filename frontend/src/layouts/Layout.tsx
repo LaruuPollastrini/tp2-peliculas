@@ -37,9 +37,14 @@ export const Layout = () => {
               Catálogo
             </NavLink>
             {user && (
-              <NavLink to="/mis-peliculas" className={navClass}>
-                Mis películas
-              </NavLink>
+              <>
+                <NavLink to="/mis-peliculas" className={navClass}>
+                  Mis películas
+                </NavLink>
+                <NavLink to="/asistente" className={navClass}>
+                  Asistente
+                </NavLink>
+              </>
             )}
             {isAdmin && (
               <>
