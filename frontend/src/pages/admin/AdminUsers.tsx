@@ -1,10 +1,119 @@
-// Ruta privada por rol "/admin/usuarios" (solo admin). Opcional "pagina de admin para cambiar roles".
-// Todo sale del plugin admin de Better Auth (authClient.admin.*): el backend ya valida que sea admin.
+// Ruta privada por rol "/admin/usuarios" (solo admin). Gestion de usuarios:
+//   - crear usuarios (authClient.admin.createUser)
+//   - cambiar roles (authClient.admin.setRole) -> opcional "pagina de admin para cambiar roles"
+// Todo sale del plugin admin de Better Auth: el backend ya valida que quien llama sea admin.
 import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { authClient, useSession } from "../../lib/auth-client";
 import type { UserRole } from "../../types/auth";
 
 type AdminUser = { id: string; name: string; email: string; role?: string | null };
+
+// Formulario de alta de usuario (React Hook Form + Zod).
+const createUserSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, { error: "El nombre debe tener al menos 2 caracteres" })
+    .max(80, { error: "Máximo 80 caracteres" }),
+  email: z.email({ error: "El email no tiene un formato válido" }).trim().toLowerCase(),
+  password: z
+    .string()
+    .min(8, { error: "La contraseña debe tener al menos 8 caracteres" })
+    .max(128, { error: "Máximo 128 caracteres" }),
+  role: z.enum(["user", "admin"], { error: "Elegí un rol" }),
+});
+
+type CreateUserValues = z.infer<typeof createUserSchema>;
+
+const emptyUser: CreateUserValues = { name: "", email: "", password: "", role: "user" };
+
+const inputClass = "rounded border border-sand px-3 py-2 aria-invalid:border-red-500";
+
+const CreateUserForm = ({ onCreated }: { onCreated: () => Promise<void> }) => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting, isSubmitSuccessful },
+  } = useForm<CreateUserValues>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: emptyUser,
+  });
+
+  const onSubmit = async (values: CreateUserValues) => {
+    const { error } = await authClient.admin.createUser(values);
+    if (error) {
+      setError("root.server", { message: error.message ?? "No se pudo crear el usuario" });
+      return;
+    }
+    reset(emptyUser);
+    await onCreated();
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+      className="mb-8 flex flex-col gap-3 rounded-md border border-sand p-5"
+    >
+      <h3 className="font-serif text-2xl font-medium text-cafe">Nuevo usuario</h3>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm text-cafe">
+          Nombre
+          <input type="text" aria-invalid={!!errors.name} {...register("name")} className={inputClass} />
+          {errors.name && <span className="text-xs text-red-600">{errors.name.message}</span>}
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-cafe">
+          Email
+          <input type="email" aria-invalid={!!errors.email} {...register("email")} className={inputClass} />
+          {errors.email && <span className="text-xs text-red-600">{errors.email.message}</span>}
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-cafe">
+          Contraseña
+          <input
+            type="password"
+            autoComplete="new-password"
+            aria-invalid={!!errors.password}
+            {...register("password")}
+            className={inputClass}
+          />
+          {errors.password && <span className="text-xs text-red-600">{errors.password.message}</span>}
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-cafe">
+          Rol
+          <select aria-invalid={!!errors.role} {...register("role")} className={inputClass}>
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+          </select>
+          {errors.role && <span className="text-xs text-red-600">{errors.role.message}</span>}
+        </label>
+      </div>
+      {errors.root?.server && (
+        <p role="alert" className="text-sm text-red-600">
+          {errors.root.server.message}
+        </p>
+      )}
+      {isSubmitSuccessful && !errors.root?.server && (
+        <p role="status" className="text-sm text-oliva">
+          Usuario creado.
+        </p>
+      )}
+      <div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="rounded bg-cafe px-4 py-2 font-medium text-lino transition hover:bg-cafe-soft disabled:opacity-50"
+        >
+          {isSubmitting ? "Creando..." : "Crear usuario"}
+        </button>
+      </div>
+    </form>
+  );
+};
 
 export const AdminUsers = () => {
   const { data: session } = useSession();
@@ -40,10 +149,13 @@ export const AdminUsers = () => {
   return (
     <section className="rounded-md border border-sand bg-lino p-6">
       <h2 className="mb-1 font-serif text-3xl font-medium text-cafe">Usuarios y roles</h2>
-      <p className="mb-4 text-sm text-topo">
-        Todo usuario nuevo es <strong>user</strong> (solo lee el catálogo y gestiona sus propias películas). Un{" "}
-        <strong>admin</strong> puede crear, editar y eliminar cualquier película y cambiar roles.
+      <p className="mb-6 text-sm text-topo">
+        Todo usuario que se registra es <strong>user</strong>: lee el catálogo y gestiona sus propias películas.
+        Un <strong>admin</strong> puede crear, editar y eliminar cualquier película, crear usuarios y cambiar roles.
       </p>
+
+      <CreateUserForm onCreated={loadUsers} />
+
       {error && (
         <p role="alert" className="mb-3 text-sm text-red-600">
           {error}
@@ -63,7 +175,7 @@ export const AdminUsers = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`rounded px-2 py-0.5 text-xs ${role === "admin" ? "bg-sand-soft text-cafe" : "bg-sand-soft text-cafe"}`}
+                  className={`rounded px-2 py-0.5 text-xs ${role === "admin" ? "bg-cafe text-lino" : "bg-sand-soft text-cafe"}`}
                 >
                   {role}
                 </span>
